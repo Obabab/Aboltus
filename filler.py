@@ -32,7 +32,7 @@ def populate_database():
         for _ in range(10):
             user = User(
                 username=fake.user_name(),
-                password_hash=generate_password_hash("password123"),
+                password_hash=generate_password_hash(fake.password()),
                 weight=fake.random_int(min=50, max=100),
                 height=fake.random_int(min=150, max=200),
                 age=fake.random_int(min=18, max=80),
@@ -83,6 +83,42 @@ def populate_database():
             )
             favorites.append(favorite)
         session.add_all(favorites)
+        session.commit()
+
+        # Создание тестовых ингредиентов
+        ingredients = []
+        for _ in range(20):
+            ingredient = Ingredients(
+                name=fake.word(),
+                price_per_unit=fake.random_int(min=1, max=20),
+                unit=fake.random_element(elements=("kg", "g", "l", "ml")),
+                store_name=fake.company(),
+                valid_from=fake.date_time_this_year()
+            )
+            ingredients.append(ingredient)
+        session.add_all(ingredients)
+        session.commit()
+
+        # Получаем все ingredient_id
+        ingredient_ids = [ingredient.ingredient_id for ingredient in session.query(Ingredients).all()]
+
+        # Заполнение таблицы Meal_PlanMeal
+        for meal_plan in meal_plans:
+            selected_meals = fake.random_elements(elements=meals, length=fake.random_int(min=1, max=5), unique=True)
+            for meal in selected_meals:
+                meal_plan.meals.append(meal)
+        session.commit()
+
+        # Заполнение таблицы Meal_Ingredient
+        for meal in meals:
+            selected_ingredients = fake.random_elements(elements=ingredients, length=fake.random_int(min=3, max=8), unique=True)
+            for ingredient in selected_ingredients:
+                stmt = Meal_Ingredient.insert().values(
+                    meal_id=meal.meal_id,
+                    ingredient_id=ingredient.ingredient_id,
+                    quantity=fake.random_int(min=1, max=10) + fake.random_number(digits=2) / 100  # Например, 2.50
+                )
+                session.execute(stmt)
         session.commit()
 
         print("База данных успешно заполнена тестовыми данными!")
