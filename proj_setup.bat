@@ -1,6 +1,8 @@
 @echo off
 cd /d %~dp0
 
+:: 0. Освобождаем порт 5432 для работы базы данных
+call port_clearer.bat
 
 :: 1. Создаём виртуальное окружение
 python -m venv venv

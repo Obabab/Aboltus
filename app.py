@@ -31,7 +31,7 @@ class User(Base):
 
     user_id = Column(Integer, primary_key=True)
     username = Column(String(50), nullable=False, unique=True)
-    password_hash = Column(String(64), nullable=False, unique=True)
+    password_hash = Column(Text, nullable=False, unique=True)
     weight = Column(Numeric(4, 1), nullable=True)
     height = Column(Numeric(4, 1), nullable=True)
     age = Column(Numeric(3, 0), nullable=True)
