@@ -57,4 +57,4 @@ Thumbs.db
 tree.py
 docs/
 API Test Collection.postman_collection.json
-.conf
+default.conf
