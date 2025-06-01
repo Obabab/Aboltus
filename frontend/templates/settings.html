@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Список блюд — bit-eat{% endblock %}
+
+{% block content %}
+<header class="header" style="background: #000; padding: 20px; display: flex; align-items: center; justify-content: space-between;">
+  <a href="{% url 'home' %}" class="header__logo">
+    <img src="{% static 'admin/img/home-icon-1.png' %}" alt="Домой" style="height:24px;">
+  </a>
+  <nav class="header__nav">
+    <a href="{% url 'dashboard' %}" style="color:#fff; margin-right:20px;">Личный кабинет</a>
+    <a href="{% url 'favorites' %}" style="color: #fff; margin-right: 20px;">Любимые блюда</a>
+    <a href="{% url 'MealPlan_list' %}" style="color: #fff; margin-right: 20px;">Мои планы питания</a>
+    <button id="logout-button" style="background:none;border:none;color:#fff;cursor:pointer;">Выйти из аккаунта</button>
+  </nav>
+</header>
+
+{# —— Секция смены пароля —— #}
+<div style="max-width:600px; margin:40px auto; padding:20px; border:1px solid #ddd; border-radius:4px;">
+  <h2 style="margin-top:0; font-size:1.5rem;">Смена пароля</h2>
+
+  <input
+    type="password"
+    id="old-password"
+    placeholder="Старый пароль"
+    style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:4px;"
+  >
+
+  <input
+    type="password"
+    id="new-password"
+    placeholder="Новый пароль"
+    style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:4px;"
+  >
+
+  <button
+    id="change-password-button"
+    style="background:#d24c00; color:#fff; border:none; padding:10px 20px; border-radius:4px; cursor:pointer;"
+  >
+    Сменить пароль
+  </button>
+</div>
+
+
+{# —— Секция удаления аккаунта —— #}
+<div style="max-width:600px; margin:0 auto 60px; text-align:center;">
+  <button
+    id="delete-account-button"
+    style="background:#e74c3c; color:#fff; border:none; padding:10px 20px; border-radius:4px; cursor:pointer;"
+  >
+    Удалить аккаунт
+  </button>
+</div>
+
+{% endblock %}
+
+{% block scripts %} 
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  // Функции проверки/обновления токена, редиректа, автобезопасности и т.д.
+  if (!(await verifyToken())) return;
+  async function verifyToken() {
+    const access = localStorage.getItem('access'),
+          refresh = localStorage.getItem('refresh');
+    if (!refresh) { redirectToLogin(); return false; }
+
+    let r = await fetch('/api/token/verify/', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ token: access })
+    });
+    if (r.ok) return true;
+
+    r = await fetch('/api/token/refresh/', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ refresh })
+    });
+    if (!r.ok) { localStorage.clear(); redirectToLogin(); return false; }
+    const d = await r.json();
+    localStorage.setItem('access', d.access);
+    return true;
+  }
+
+  function getUserIdFromToken() {
+  const token = localStorage.getItem('access');
+  if (!token) return null;
+  try {
+    // JWT = header.payload.signature
+    const payload = token.split('.')[1];
+    // atob декодирует Base64, затем JSON.parse
+    const { user_id } = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    return user_id;
+  } catch {
+    return null;
+    console.log('User ID:', user_id);
+  }
+}
+
+function redirectToLogin() {
+    alert('Сессия истекла. Пожалуйста, войдите снова.');
+    window.location.href = '{% url "login" %}';
+  }
+
+  // Выход
+  document.getElementById('logout-button').addEventListener('click', () => {
+    localStorage.clear();
+    window.location.href = '{% url "login" %}';
+  });
+
+  // Смена пароля
+document.getElementById('change-password-button').addEventListener('click', async () => {
+  const oldPw = document.getElementById('old-password').value.trim();
+  const newPw = document.getElementById('new-password').value.trim();
+
+  if (!oldPw || !newPw) {
+    return alert('Пожалуйста, введите старый и новый пароль');
+  }
+
+  if (!(await verifyToken())) return;
+
+  const uid = await getUserIdFromToken();
+
+  try {
+    const res = await fetch(`/api/users/${uid}/change_password/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('access')
+      },
+      body: JSON.stringify({
+        old_password: oldPw,
+        new_password: newPw
+      })
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw error;
+    }
+
+    alert('Пароль успешно изменён');
+    document.getElementById('old-password').value = '';
+    document.getElementById('new-password').value = '';
+  } catch (e) {
+    alert('Ошибка: ' + (e.error || JSON.stringify(e)));
+  }
+});
+
+
+  // Удаление аккаунта
+  document.getElementById('delete-account-button').addEventListener('click', async () => {
+    if (!confirm('Вы уверены, что хотите удалить аккаунт?')) return;
+    if (!(await verifyToken())) return;
+    const uid = await getUserIdFromToken();
+    try {
+      const res = await fetch(`/api/users/${uid}/`, {
+        method:'DELETE',
+        headers:{ 'Authorization':'Bearer ' + localStorage.getItem('access') }
+      });
+      if (!res.ok) throw new Error('Не удалось удалить аккаунт');
+      localStorage.clear();
+      alert('Аккаунт удалён');
+      window.location.href = '{% url "login" %}';
+    } catch (e) {
+      alert('Ошибка: ' + e.message);
+    }
+  });
+
+  // Auto-verify
+  document.querySelectorAll('#profile-form input, #profile-form select')
+          .forEach(el => el.addEventListener('change', () => verifyToken()));
+});
+</script>
+{% endblock %}

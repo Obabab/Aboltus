@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Любимые блюда — bit-eat{% endblock %}
+
+{% block content %}
+<header class="header" style="background:#000; padding:20px; display:flex; justify-content:space-between; align-items:center;">
+  <a href="{% url 'home' %}" class="header__logo">
+    <img src="{% static 'admin/img/home-icon-1.png' %}" alt="Домой" style="height:24px;">
+  </a>
+  <nav class="header__nav">
+    <a href="{% url 'dashboard' %}" style="color:#fff; margin-right:20px;">Личный кабинет</a>
+    <a href="{% url 'MealPlan_list' %}" style="color: #fff; margin-right: 20px;">Мои планы питания</a>
+    <button id="logout-button" style="background:none;border:none;color:#fff;cursor:pointer;">Выйти из аккаунта</button>
+  </nav>
+</header>
+
+<section style="padding:60px 20px; max-width:800px; margin:0 auto;">
+  <h1 style="text-align:center; margin-bottom:40px;">Любимые блюда</h1>
+  <div id="favorites-container" style="display: flex; flex-direction: column; gap: 40px;"></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function redirectToLogin() {
+  window.location.href = '{% url "login" %}';
+}
+
+async function verifyToken() {
+  const access = localStorage.getItem('access');
+  const refresh = localStorage.getItem('refresh');
+  if (!refresh) { redirectToLogin(); return false; }
+
+  let r = await fetch('/api/token/verify/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: access })
+  });
+  if (r.ok) return true;
+
+  r = await fetch('/api/token/refresh/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh })
+  });
+  if (!r.ok) { localStorage.clear(); redirectToLogin(); return false; }
+
+  const d = await r.json();
+  localStorage.setItem('access', d.access);
+  return true;
+}
+
+async function fetchFavorites() {
+  const container = document.getElementById('favorites-container');
+  const token = localStorage.getItem('access');
+
+  const res = await fetch('/api/favorites/', {
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+
+  if (!res.ok) {
+    container.innerHTML = '<p style="text-align:center;">Ошибка загрузки избранного.</p>';
+    return;
+  }
+
+  const favorites = await res.json();
+  if (!favorites.length) {
+    container.innerHTML = '<p style="text-align:center;">У вас пока нет любимых блюд.</p>';
+    return;
+  }
+
+  favorites.forEach(fav => {
+    const card = document.createElement('div');
+    card.classList.add('fav-card');
+    card.dataset.id = fav.id;
+
+    card.style = "display:flex; gap:20px; border-bottom:1px solid #ddd; padding-bottom:30px;";
+
+    card.innerHTML = `
+      <div style="flex-shrink:0;">
+        <img src="/static/${fav.meal.image_path}" 
+             alt="${fav.meal.name}" 
+             style="width:300px; height:300px; object-fit:cover; border-radius:4px;">
+      </div>
+      <div style="flex:1; position:relative;">
+        <h2 style="margin-top:0;">${fav.meal.name}</h2>
+        <button class="recipe-btn"
+                style="background:#000; color:#fff; border:none;
+                       padding:8px 16px; border-radius:4px; cursor:pointer; margin-right:10px;">
+          Рецепт
+        </button>
+        <button class="delete-btn"
+                style="background:#e74c3c; color:#fff; border:none;
+                       padding:8px 16px; border-radius:4px; cursor:pointer;">
+          Удалить
+        </button>
+        <div class="recipe-details"
+             style="display:none; margin-top:20px; padding:15px;
+                    background:#f9f9f9; border-radius:4px; line-height:1.5;">
+          ${fav.meal.description || 'Описание отсутствует'}
+        </div>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+
+  document.querySelectorAll('.recipe-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const details = btn.closest('.fav-card').querySelector('.recipe-details');
+      details.style.display = (details.style.display === 'block') ? 'none' : 'block';
+    });
+  });
+
+  document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Удалить из избранного?')) return;
+      const card = btn.closest('.fav-card');
+      const favId = card.dataset.id;
+      try {
+        const res = await fetch(`/api/favorites/${favId}/`, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('access') }
+        });
+        if (!res.ok) throw new Error('Не удалось удалить');
+        card.remove();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!(await verifyToken())) return;
+  document.getElementById('logout-button').addEventListener('click', () => {
+    localStorage.clear();
+    redirectToLogin();
+  });
+  fetchFavorites();
+});
+</script>
+{% endblock %}

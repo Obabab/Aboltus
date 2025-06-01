@@ -1,0 +1,339 @@
+{# core/templates/dashboard.html #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Личный кабинет — bit-eat{% endblock %}
+
+{% block content %}
+
+<header class="header" style="background: #000; padding: 20px; display: flex; justify-content: space-between; align-items: center;">
+  <a href="{% url 'home' %}" class="header__logo">
+    <img src="{% static 'admin/img/home-icon-1.png' %}" alt="Домой" style="height: 24px;">
+  </a>
+  <nav class="header__nav">
+    <a href="{% url 'favorites' %}" style="color: #fff; margin-right: 20px;">Любимые блюда</a>
+    <a href="{% url 'MealPlan_list' %}" style="color: #fff; margin-right: 20px;">Мои планы питания</a>
+    <a href="{% url 'settings' %}" style="color: #fff; margin-right: 20px;">Настройки</a>
+    <button id="logout-button" style="background:none;border:none;color:#fff;cursor:pointer;">Выйти из аккаунта</button>
+  </nav>
+</header>
+
+
+<section class="dashboard" style="padding: 60px 20px; max-width: 600px; margin: 0 auto;">
+  <h1 style="text-align: center; margin-bottom: 40px; font-size: 2rem;">Личный кабинет</h1>
+  <form id="profile-form" style="display: flex; flex-direction: column; gap: 30px;">
+
+    <div>
+      <label for="full_name" style="display: block; margin-bottom: 8px; font-weight: 500;">Полное имя</label>
+      <input
+        type="text"
+        id="first_name"
+        name="first_name"
+        placeholder="Введите ваше полное имя"
+        required
+        style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;"
+      >
+    </div>
+
+    <div>
+      <p style="margin: 0 0 8px; font-weight: 500;">Пол</p>
+      <label style="margin-right: 20px;">
+        <input type="radio" name="gender" value="male" required> Мужской
+      </label>
+      <label>
+        <input type="radio" name="gender" value="female" required> Женский
+      </label>
+    </div>
+
+    <div>
+      <label for="height" style="display: block; margin-bottom: 8px; font-weight: 500;">Рост</label>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="width: 30px; text-align: right;">50</span>
+        <input
+          type="range"
+          id="height"
+          name="height"
+          min="50"
+          max="230"
+          value="140"
+          style="flex: 1;"
+        >
+        <span id="height-value" style="min-width: 50px;">140 см</span>
+      </div>
+    </div>
+
+    <div>
+      <label for="weight" style="display: block; margin-bottom: 8px; font-weight: 500;">Текущий вес</label>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="width: 30px; text-align: right;">10</span>
+        <input
+          type="range"
+          id="weight"
+          name="weight"
+          min="10"
+          max="300"
+          value="70"
+          style="flex: 1;"
+        >
+        <span id="weight-value" style="min-width: 50px;">70 кг</span>
+      </div>
+    </div>
+
+    <div>
+      <label for="desired_weight" style="display: block; margin-bottom: 8px; font-weight: 500;">Желаемый вес</label>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="width: 30px; text-align: right;">10</span>
+        <input
+          type="range"
+          id="desired_weight"
+          name="desired_weight"
+          min="10"
+          max="300"
+          value="65"
+          style="flex: 1;"
+        >
+        <span id="desired_weight-value" style="min-width: 50px;">65 кг</span>
+      </div>
+    </div>
+
+    <div>
+      <label for="age" style="display: block; margin-bottom: 8px; font-weight: 500;">Возраст</label>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="width: 30px; text-align: right;">10</span>
+        <input
+          type="range"
+          id="age"
+          name="age"
+          min="10"
+          max="100"
+          value="30"
+          style="flex: 1;"
+        >
+        <span id="age-value" style="min-width: 50px;">30 лет</span>
+      </div>
+    </div>
+
+    <div>
+      <label for="weeks" style="display: block; margin-bottom: 8px; font-weight: 500;">Продолжительность (недель)</label>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="width: 30px; text-align: right;">1</span>
+        <input
+          type="range"
+          id="weeks"
+          name="weeks"
+          min="1"
+          max="50"
+          value="1"
+          style="flex: 1;"
+        >
+        <span id="weeks-value" style="min-width: 50px;">1 неделя</span>
+      </div>
+    </div>
+
+    <div>
+      <label for="activity" style="display: block; margin-bottom: 8px; font-weight: 500;">Вид активности</label>
+      <select id="activity" name="activity" required
+              style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+        <option value="">Выберите...</option>
+        <option value="1.2">Минимальная</option>
+        <option value="1.375">Низкая</option>
+        <option value="1.55">Умеренная</option>
+        <option value="1.725">Высокая</option>
+        <option value="1.9">Очень высокая</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="goal" style="display: block; margin-bottom: 8px; font-weight: 500;">Цель питания</label>
+      <select id="goal" name="goal" required
+              style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+        <option value="">Выберите...</option>
+        <option value="-1">Похудение</option>
+        <option value="0">Поддержание текущей формы</option>
+        <option value="1">Набор массы</option>
+      </select>
+    </div>
+<!--
+    <div>
+      <label for="budget" style="display: block; margin-bottom: 8px; font-weight: 500;">Бюджет ₽</label>
+      <input
+        type="number"
+        id="budget"
+        name="budget"
+        min="0"
+        step="1"
+        placeholder="0"
+        required
+        style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;"
+      >
+    </div>
+-->
+    <div style="text-align: center;">
+      <button
+        type="submit"
+        style="padding: 12px 30px; background: #000; color: #fff; border: none; border-radius: 4px; font-weight: 600;"
+      >
+        Отправить
+      </button>
+    </div>
+
+    <div id="calories-result" style="margin-top: 20px; font-size: 1.3rem; font-weight: 600; text-align: center; color: #222;"></div>
+
+  </form>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  // Функции проверки/обновления токена, редиректа, автобезопасности и т.д.
+  if (!(await verifyToken())) return;
+  async function verifyToken() {
+    const access = localStorage.getItem('access'),
+          refresh = localStorage.getItem('refresh');
+    if (!refresh) { redirectToLogin(); return false; }
+
+    let r = await fetch('/api/token/verify/', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ token: access })
+    });
+    if (r.ok) return true;
+
+    r = await fetch('/api/token/refresh/', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ refresh })
+    });
+    if (!r.ok) { localStorage.clear(); redirectToLogin(); return false; }
+    const d = await r.json();
+    localStorage.setItem('access', d.access);
+    return true;
+  }
+
+
+  /**
+ * Извлекаем поле `user_id` из JWT access-токена,
+ * который лежит в localStorage под ключом "access".
+ */
+function getUserIdFromToken() {
+  const token = localStorage.getItem('access');
+  if (!token) return null;
+  try {
+    // JWT = header.payload.signature
+    const payload = token.split('.')[1];
+    // atob декодирует Base64, затем JSON.parse
+    const { user_id } = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    return user_id;
+  } catch {
+    return null;
+  }
+}
+
+  function redirectToLogin() {
+    alert('Сессия истекла. Пожалуйста, войдите снова.');
+    window.location.href = '{% url "login" %}';
+  }
+
+  // Выход
+  document.getElementById('logout-button').addEventListener('click', () => {
+    localStorage.clear();
+    window.location.href = '{% url "login" %}';
+  });
+
+
+  // Слайдеры
+  function setupRange(id, suffix) {
+    const inp = document.getElementById(id),
+          out = document.getElementById(id + '-value');
+    if (!inp||!out) return;
+    out.textContent = inp.value + suffix;
+    inp.addEventListener('input', () => out.textContent = inp.value + suffix);
+  }
+  setupRange('height',' см');
+  setupRange('weight',' кг');
+  setupRange('desired_weight',' кг');
+  setupRange('age',' лет');
+  setupRange('weeks',' неделя');
+
+
+  // Подсчет калорий
+  function calculateCalories({ gender, weight, height, age, activity, goal, desired_weight, days }) {
+    const S = gender==='male'?5:-161;
+    const BMR = 10*+weight + 6.25*+height - 5*+age + S;
+    const TDEE = BMR * +activity;
+    const diff = Math.abs(+weight - +desired_weight);
+    const Z = parseInt(goal);
+    let delta = 0;
+    if (Z!==0 && diff>0 && days>0) {
+      delta = Z * ((diff * 7700)/(days*7));
+    }
+    return Math.round(TDEE + delta);
+  }
+
+  // Сохранение профиля
+  document.getElementById('profile-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!(await verifyToken())) return;
+    const form = e.target, fd = new FormData(form), data={};
+    fd.forEach((v,k)=>data[k]=v);
+    const cal = calculateCalories({
+      gender: data.gender,
+      weight: data.weight,
+      height: data.height,
+      age: data.age,
+      activity: data.activity,
+      goal: data.goal,
+      desired_weight: data.desired_weight,
+      days: data.weeks
+    });
+    document.getElementById('calories-result').textContent =
+      `Рекомендованная норма калорий: ${cal} Ккал`;
+    const uid = await getUserIdFromToken();
+    try {
+      const res = await fetch(`/api/users/${uid}/`, {
+        method:'PATCH',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':'Bearer ' + localStorage.getItem('access')
+        },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) throw await res.json();
+      alert('Профиль обновлён');
+      // Создание плана питания
+        try {
+          const createPlanRes = await fetch('/api/create_meal_plan/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + localStorage.getItem('access')
+            },
+            body: JSON.stringify({
+              user_id: uid,
+              total_calories: cal,
+              duration: data.weeks
+            })
+          });
+          const createPlanData = await createPlanRes.json();
+          if (createPlanRes.ok) {
+            alert('План питания создан!');
+          } else {
+            console.error('Ошибка создания плана:', createPlanData.error);
+          }
+        } catch (err) {
+          console.error('Ошибка при создании плана:', err);
+        }
+
+    } catch (err) {
+      alert('Ошибка: ' + JSON.stringify(err));
+    }
+  });
+
+  // Auto-verify
+  document.querySelectorAll('#profile-form input, #profile-form select')
+          .forEach(el => el.addEventListener('change', () => verifyToken()));
+});
+</script>
+{% endblock %}

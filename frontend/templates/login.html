@@ -1,0 +1,124 @@
+{# core/templates/login.html #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Вход — bit-eat{% endblock %}
+
+{% block content %}
+
+<head>
+  <link rel="icon" href="{% static 'admin/img/ico-site.ico' %}" type="image/x-icon">
+</head>
+
+<header class="header" style="background: #000; padding: 20px; display: flex; justify-content: space-between; align-items: center;">
+  <a href="{% url 'home' %}" class="header__logo">
+    <img src="{% static 'admin/img/home-icon-1.png' %}" alt="Домой" style="height: 24px;">
+  </a>
+  <nav class="header__nav">
+    <a href="{% url 'register' %}" style="color: #fff;">Зарегистрироваться</a>
+  </nav>
+</header>
+
+<section class="hero" style="background: url('{% static 'admin/img/canv2.png' %}') center/cover no-repeat; height: 100vh;">
+  <div class="hero__content" style="max-width: 400px; width: 90%; margin: 0 auto;">
+    <h2 style="text-align: center; color:#fff; margin-bottom:20px;">Введите данные для входа</h2>
+
+    <form id="login-form" style="background:rgba(255,255,255,0.9); padding:20px; border-radius:8px;">
+      <div style="margin-bottom:15px;">
+        <input
+          type="text"
+          id="username"
+          name="username"
+          placeholder="Логин"
+          required
+          style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px;"
+        >
+      </div>
+      <div style="margin-bottom:15px;">
+        <input
+          type="password"
+          id="password"
+          name="password"
+          placeholder="Пароль"
+          required
+          style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px;"
+        >
+      </div>
+      <div id="login-error" style="color:red; font-size:0.9rem; margin-bottom:10px; display:none;"></div>
+      <button
+        type="button"
+        id="login-button"
+        style="width:100%; padding:12px; background:#d24c00; color:#fff; border:none; border-radius:4px; font-weight:600;"
+      >
+        Авторизоваться
+      </button>
+    </form>
+
+    <div style="text-align:center; margin-top:20px;">
+      <a href="{% url 'register' %}" style="color:#ffffff; font-size:0.9rem;">
+        Нет аккаунта? Зарегистрироваться
+      </a>
+    </div>
+  </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM загружен');
+
+  const form = document.getElementById('login-form');
+  const errDiv = document.getElementById('login-error');
+  const loginBtn = document.getElementById('login-button');
+
+  loginBtn.addEventListener('click', async () => {
+    errDiv.style.display = 'none';
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Загрузка...';
+
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    console.log('📤 Отправка запроса на /api/token/', { username });
+
+    try {
+      const res = await fetch('/api/token/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        let errorMsg = 'Ошибка авторизации. Проверьте введённые данные.';
+        if (data.detail) {
+          if (data.detail === 'No active account found with the given credentials') {
+            errorMsg = 'Аккаунт не найден или пароль неверный.';
+          } else {
+            errorMsg = data.detail;
+          }
+        }
+        throw new Error(errorMsg);
+      }
+
+      console.log('Авторизация успешна');
+      localStorage.setItem('access', data.access);
+      localStorage.setItem('refresh', data.refresh);
+      window.location.href = '{% url "dashboard" %}';
+
+    } catch (err) {
+      console.error('Ошибка авторизации:', err);
+      localStorage.removeItem('access');
+      localStorage.removeItem('refresh');
+      errDiv.textContent = err.message;
+      errDiv.style.display = 'block';
+      document.getElementById('username').focus();
+    } finally {
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Авторизоваться';
+    }
+  });
+});
+</script>
+
+{% endblock %}

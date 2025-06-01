@@ -1,0 +1,21 @@
+{# core/templates/base.html #}
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>{% block title %}bit-eat{% endblock %}</title>
+  
+  {# Подключаем главный CSS-файл #}
+  <link rel="stylesheet" href="{% static 'admin/css/styles.css' %}">
+</head>
+{% block scripts %}{% endblock %}
+<body>
+  
+  {# Сюда будет вставлено содержимое index.html и любых других страниц #}
+  {% block content %}{% endblock %}
+  
+</body>
+</html>

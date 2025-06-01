@@ -1,28 +1,27 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
 
-:: Указываем порт, который нужно освободить
 set PORT=5432
+set PID=
 
-:: Поиск процесса, занимающего порт
-echo Поиск процесса, занимающего порт %PORT%...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%PORT%') do (
+echo Поиск процесса, занятого портом %PORT%...
+
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%PORT% ^| findstr LISTENING') do (
     set PID=%%a
+    goto kill
 )
 
-:: Проверка, найден ли PID
-if defined PID (
-    echo Найден процесс с PID=%PID%, занимающий порт %PORT%.
-    echo Завершение процесса...
-    taskkill /PID %PID% /F
-    if %ERRORLEVEL% equ 0 (
-        echo Порт %PORT% успешно освобожден.
-    ) else (
-        echo Не удалось завершить процесс. Ошибка: %ERRORLEVEL%
-    )
+echo Порт %PORT% не занят.
+goto end
+
+:kill
+echo Найден PID: %PID%. Завершаем процесс...
+taskkill /F /PID !PID!
+if !ERRORLEVEL! equ 0 (
+    echo Порт %PORT% успешно освобожден.
 ) else (
-    echo Порт %PORT% не занят.
+    echo Не удалось завершить процесс с PID !PID!.
 )
 
+:end
 endlocal
-pause

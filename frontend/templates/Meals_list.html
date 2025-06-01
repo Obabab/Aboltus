@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Список блюд — bit-eat{% endblock %}
+
+{% block content %}
+<header class="header" style="background: #000; padding: 20px; display: flex; align-items: center; justify-content: space-between;">
+  <a href="{% url 'home' %}" class="header__logo">
+    <img src="{% static 'admin/img/home-icon-1.png' %}" alt="Домой" style="height:24px;">
+  </a>
+  <nav class="header__nav">
+    <a href="{% url 'dashboard' %}" style="color:#fff; margin-right:20px;">Личный кабинет</a>
+    <a href="{% url 'favorites' %}" style="color: #fff; margin-right: 20px;">Любимые блюда</a>
+    <a href="{% url 'MealPlan_list' %}" style="color: #fff; margin-right: 20px;">Мои планы питания</a>
+    <button id="logout-button" style="background:none;border:none;color:#fff;cursor:pointer;">Выйти из аккаунта</button>
+  </nav>
+</header>
+
+<section style="padding: 60px 20px;">
+  <h1 style="text-align:center; font-size:2rem; margin-bottom:40px;">Список блюд</h1>
+
+  {# Для каждой «строки» троек блюд #}
+{% for row in rows %}
+  <h2 style="margin: 40px 0 10px;">День {{ forloop.counter }}</h2>
+  <div style="display:flex; justify-content:space-between; gap:40px; margin-bottom:40px;">
+    {% for dish, label in row %}
+      <div class="dish-card"
+           {% if dish %} data-id="{{ dish.id }}" {% endif %}
+           style="flex:1; text-align:left;">
+        {% if dish %}
+          <img src="{% static dish.image_path %}"
+               alt="{{ dish.name }}"
+               style="width:100%;border-radius:4px;object-fit:cover;height:200px;">
+        {% else %}
+          <div style="width:100%;height:200px;background:#f0f0f0;border-radius:4px;"></div>
+        {% endif %}
+
+        <h3 style="margin:10px 0 5px;">{{ label }}</h3>
+
+        {% if dish %}
+          <p style="font-size:1rem;margin:0 0 10px;font-weight:600;">
+            {{ dish.name }}
+          </p>
+          <button class="recipe-btn"
+                  style="background:#000;color:#fff;border:none;
+                         padding:8px 12px;border-radius:4px;
+                         cursor:pointer;margin-right:10px;">
+            Описание
+          </button>
+          <button class="fav-btn"
+                  style="background:#fff;color:#000;border:1px solid #000;
+                         padding:8px 12px;border-radius:4px;
+                         cursor:pointer;">
+            В избранное
+          </button>
+          <div class="recipe-details"
+               style="display:none;margin-top:15px;
+                      padding:10px;background:#f9f9f9;
+                      border-radius:4px;font-size:0.9rem;
+                      text-align:left;">
+            {{ dish.description|linebreaks }}
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% endfor %}
+
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// точно как было до этого
+function getUserId() {
+  const token = localStorage.getItem('access');
+  if (!token) return null;
+  try {
+    return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).user_id;
+  } catch { return null; }
+}
+
+async function verifyToken() {
+  const access = localStorage.getItem('access');
+  const refresh = localStorage.getItem('refresh');
+  if (!refresh) { location.href = '{% url "login" %}'; return false; }
+
+  let res = await fetch('/api/token/verify/', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ token: access })
+  });
+  if (res.ok) return true;
+
+  res = await fetch('/api/token/refresh/', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ refresh })
+  });
+  if (!res.ok) { localStorage.clear(); location.href = '{% url "login" %}'; return false; }
+  const data = await res.json();
+  localStorage.setItem('access', data.access);
+  return true;
+}
+
+document.addEventListener('DOMContentLoaded', async() => {
+  if (!(await verifyToken())) return;
+  document.getElementById('logout-button').addEventListener('click', () => {
+    localStorage.clear();
+    location.href = '{% url "login" %}';
+  });
+
+  document.querySelectorAll('.recipe-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const details = btn.closest('.dish-card').querySelector('.recipe-details');
+      details.style.display = details.style.display === 'block' ? 'none' : 'block';
+    });
+  });
+
+  document.querySelectorAll('.fav-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!(await verifyToken())) return;
+      const card = btn.closest('.dish-card'),
+            mealId = card.dataset.id;
+      try {
+        const res = await fetch('/api/favorites/', {
+          method:'POST',
+          headers:{
+            'Content-Type':'application/json',
+            'Authorization':'Bearer '+localStorage.getItem('access')
+          },
+          body: JSON.stringify({ meal_id: mealId })
+        });
+        if (!res.ok) throw new Error('Ошибка добавления в избранное');
+        btn.style.background = '#a3ffb1';
+        btn.textContent = 'В избранном';
+        btn.disabled = true;
+      } catch(e) {
+        alert(e.message);
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

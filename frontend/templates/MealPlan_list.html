@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Мои планы питания — bit-eat{% endblock %}
+
+{% block content %}
+<header class="header" style="background: #000; padding: 20px; display: flex; align-items: center; justify-content: space-between;">
+  <a href="{% url 'home' %}" class="header__logo">
+    <img src="{% static 'admin/img/home-icon-1.png' %}" alt="Домой" style="height:24px;">
+  </a>
+  <nav class="header__nav">
+    <a href="{% url 'dashboard' %}" style="color:#fff; margin-right:20px;">Личный кабинет</a>
+    <a href="{% url 'favorites' %}" style="color: #fff; margin-right: 20px;">Любимые блюда</a>
+    <button id="logout-button" style="background:none;border:none;color:#fff;cursor:pointer;">Выйти из аккаунта</button>
+  </nav>
+</header>
+
+<section style="padding: 60px 20px; max-width: 800px; margin: 0 auto;">
+  <h1 style="text-align:center; font-size:2rem; margin-bottom:40px;">Мои планы питания</h1>
+  <div id="plans-container"></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function getUserId() {
+  const token = localStorage.getItem('access');
+  if (!token) return null;
+  try {
+    return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).user_id;
+  } catch { return null; }
+}
+
+async function verifyToken() {
+  const access = localStorage.getItem('access');
+  const refresh = localStorage.getItem('refresh');
+  if (!refresh) { location.href = '{% url "login" %}'; return false; }
+
+  let res = await fetch('/api/token/verify/', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ token: access })
+  });
+  if (res.ok) return true;
+
+  res = await fetch('/api/token/refresh/', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ refresh })
+  });
+  if (!res.ok) { localStorage.clear(); location.href = '{% url "login" %}'; return false; }
+  const data = await res.json();
+  localStorage.setItem('access', data.access);
+  return true;
+}
+
+async function fetchMealPlans(userId) {
+  const res = await fetch(`/api/meal-plans/?user_id=${userId}`, {
+    headers: {
+      'Authorization': 'Bearer ' + localStorage.getItem('access')
+    }
+  });
+  if (!res.ok) {
+    document.getElementById('plans-container').innerHTML = '<p>Ошибка загрузки планов питания.</p>';
+    return;
+  }
+  const plans = await res.json();
+  renderPlans(plans);
+}
+
+function renderPlans(plans) {
+  const container = document.getElementById('plans-container');
+  if (!plans.length) {
+    container.innerHTML = '<p style="text-align:center;">Планы питания отсутствуют.</p>';
+    return;
+  }
+
+  plans.forEach(plan => {
+    const div = document.createElement('div');
+    div.style = 'border:1px solid #ddd;padding:20px;border-radius:4px;margin-bottom:20px;position:relative;';
+
+    div.innerHTML = `
+      <h2 style="margin-top:0">
+        <a href="#" onclick="setPlanAndRedirect(${plan.id})" style="text-decoration:none;color:#000;">
+          План #${plan.id}
+        </a>
+      </h2>
+      <p><strong>Продолжительность:</strong> ${plan.duration} дней</p>
+      <p><strong>Калории всего:</strong> ${plan.total_calories} Ккал</p>
+      <button onclick="deleteMealPlan(${plan.id})"
+              style="position:absolute; top:20px; right:20px;
+                     background:#e74c3c; color:white; border:none;
+                     padding:6px 12px; border-radius:4px; cursor:pointer;">
+        Удалить
+      </button>
+    `;
+
+    container.appendChild(div);
+  });
+}
+
+async function deleteMealPlan(planId) {
+  if (!confirm(`Удалить план #${planId}? Это действие необратимо.`)) return;
+
+  const res = await fetch(`/api/meal-plans/${planId}/`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': 'Bearer ' + localStorage.getItem('access')
+    }
+  });
+
+  if (res.ok) {
+    alert(`План #${planId} удалён.`);
+    location.reload();
+  } else {
+    alert('Ошибка при удалении плана.');
+  }
+}
+
+
+function setPlanAndRedirect(planId) {
+  localStorage.setItem('selected_plan_id', planId);
+  location.href = '{% url "Meals_list" %}?plan_id=' + planId;
+}
+
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!(await verifyToken())) return;
+  document.getElementById('logout-button').addEventListener('click', () => {
+    localStorage.clear();
+    location.href = '{% url "login" %}';
+  });
+  const userId = getUserId();
+  if (userId) fetchMealPlans(userId);
+});
+</script>
+{% endblock %}
