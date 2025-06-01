@@ -1,5 +1,0 @@
-FROM postgres:latest
-ENV POSTGRES_DB=labs
-ENV POSTGRES_USER=postgres
-ENV POSTGRES_PASSWORD=laygon
-EXPOSE 5432
